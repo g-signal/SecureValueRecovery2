@@ -8,3 +8,4 @@
 **/*.code-workspace
 .tool-versions
 .idea
+/config/
