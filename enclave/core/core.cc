@@ -446,12 +446,23 @@ void Core::HandleCreateNewRaftGroupRequest(context::Context* ctx, internal::Tran
     ReplyWithError(ctx, tx, COUNTED_ERROR(Core_RaftState));
   }
   enclaveconfig::RaftGroupConfig cfg = raft_config_template_;
-  uint8_t group_id_bytes[8];
-  error::Error gid_err = env::environment->RandomBytes(group_id_bytes, sizeof(group_id_bytes));
-  if (gid_err != error::OK) {
-    ReplyWithError(ctx, tx, gid_err);
+
+  raft::GroupId group_id;
+  if (cfg.group_id() != 0) {
+    // Use configured group_id if provided
+    group_id = cfg.group_id();
+    LOG(INFO) << "Using configured group_id: " << group_id;
+  } else {
+    // Generate random group_id if not configured
+    uint8_t group_id_bytes[8];
+    error::Error gid_err = env::environment->RandomBytes(group_id_bytes, sizeof(group_id_bytes));
+    if (gid_err != error::OK) {
+      ReplyWithError(ctx, tx, gid_err);
+      return;
+    }
+    group_id = util::BigEndian64FromBytes(group_id_bytes);
+    LOG(INFO) << "Generated random group_id: " << group_id;
   }
-  raft::GroupId group_id = util::BigEndian64FromBytes(group_id_bytes);
   cfg.set_group_id(group_id);
   cfg.set_db_version(db_version_);
 
