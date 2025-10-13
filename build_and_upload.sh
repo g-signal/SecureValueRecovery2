@@ -58,13 +58,6 @@ echo "✓ Docker image verified"
 if [[ "$BUILD_PUSH" == "true" ]]; then
     echo "10. Pushing Docker images..."
 
-    # 登录Docker Hub（需要预先配置认证）
-    echo "Logging into Docker registry..."
-    if [[ -n "${DOCKER_PASSWORD:-}" ]]; then
-        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_REPO" --password-stdin
-    else
-        docker login
-    fi
 
     # 推送镜像
     echo "Pushing $IMAGE_TAG..."
