@@ -44,7 +44,7 @@ export DOCKER_BUILD_ARGS="--platform=linux/amd64"
 
 # 8. 构建最终Docker镜像
 echo "8. Building final Docker image..."
-docker buildx build "$DOCKER_BUILD_ARGS" --load -f docker/Dockerfile -t "$IMAGE_TAG" --target=sgxrun .
+docker buildx build "$DOCKER_BUILD_ARGS" --no-cache -f docker/Dockerfile -t "$IMAGE_TAG" --target=sgxrun .
 
 
 
