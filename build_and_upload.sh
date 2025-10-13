@@ -53,10 +53,6 @@ fi
 
 echo "✓ Docker image built: $IMAGE_TAG"
 
-# 9. 验证镜像
-echo "9. Verifying Docker image..."
-docker run --rm "$IMAGE_TAG" /opt/svr2/host/svr2host --version || true
-echo "✓ Docker image verified"
 
 # 10. 上传Docker镜像
 if [[ "$BUILD_PUSH" == "true" ]]; then
