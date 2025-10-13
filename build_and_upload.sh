@@ -14,9 +14,9 @@ else
 fi
 
 # 配置变量
-DOCKER_REPO="${docker.repo}"
-BUILD_PUSH="${build.push}"
-LATEST_TAG="${build.latest_tag}"
+DOCKER_REPO="${docker_repo}"
+BUILD_PUSH="${build_push}"
+LATEST_TAG="${build_latest_tag}"
 PROJECT_NAME="svr2"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
