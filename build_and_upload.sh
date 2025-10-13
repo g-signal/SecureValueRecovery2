@@ -38,6 +38,9 @@ echo "2. Initializing Git submodules..."
 git submodule update --init --recursive
 echo "✓ Git submodules updated"
 
+# 3. 构建Docker基础镜像
+echo "3. Building Docker base image..."
+export DOCKER_BUILD_ARGS="--platform=linux/amd64"
 
 # 8. 构建最终Docker镜像
 echo "8. Building final Docker image..."
