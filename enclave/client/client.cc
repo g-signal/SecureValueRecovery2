@@ -77,34 +77,84 @@ error::Error Client::Init(const noise::DHState& dhstate, const e2e::Attestation&
 std::pair<std::string, error::Error> Client::FinishHandshake(context::Context* ctx, const std::string& data) {
   ACQUIRE_LOCK(mu_, ctx, lock_client);
   MEASURE_CPU(ctx, cpu_client_hs_finish);
+
+  // DEBUGGING: Log handshake state and data details
+  LOG(INFO) << "HANDSHAKE_DEBUG: Client ID=" << id_ << " starting FinishHandshake";
+  LOG(INFO) << "HANDSHAKE_DEBUG: Input data size=" << data.size();
+  LOG(INFO) << "HANDSHAKE_DEBUG: Input data hex=" << util::ToHex(data);
+  LOG(INFO) << "HANDSHAKE_DEBUG: Handshake state exists=" << (hs_.get() ? "true" : "false");
+  LOG(INFO) << "HANDSHAKE_DEBUG: TX cipher exists=" << (tx_.get() ? "true" : "false");
+  LOG(INFO) << "HANDSHAKE_DEBUG: RX cipher exists=" << (rx_.get() ? "true" : "false");
+
+  if (hs_.get()) {
+    int action = noise_handshakestate_get_action(hs_.get());
+    LOG(INFO) << "HANDSHAKE_DEBUG: Current noise action=" << action << " (expecting NOISE_ACTION_READ_MESSAGE=" << NOISE_ACTION_READ_MESSAGE << ")";
+  }
+
   if (!hs_.get() || tx_.get() || rx_.get()
       || noise_handshakestate_get_action(hs_.get()) != NOISE_ACTION_READ_MESSAGE) {
+    LOG(ERROR) << "HANDSHAKE_DEBUG: Invalid handshake state - returning Client_HandshakeState error";
     return std::make_pair("", COUNTED_ERROR(Client_HandshakeState));
   }
+
   std::string buffer = data;
   NoiseBuffer read_buf = noise::BufferInputFromString(&buffer);
-  if (NOISE_ERROR_NONE != noise_handshakestate_read_message(hs_.get(), &read_buf, nullptr)) {
+  LOG(INFO) << "HANDSHAKE_DEBUG: About to call noise_handshakestate_read_message with buffer size=" << read_buf.size;
+
+  int noise_result = noise_handshakestate_read_message(hs_.get(), &read_buf, nullptr);
+  LOG(INFO) << "HANDSHAKE_DEBUG: noise_handshakestate_read_message returned=" << noise_result << " (NOISE_ERROR_NONE=" << NOISE_ERROR_NONE << ")";
+
+  if (NOISE_ERROR_NONE != noise_result) {
+    LOG(ERROR) << "HANDSHAKE_DEBUG: noise_handshakestate_read_message failed with error code=" << noise_result;
+    LOG(ERROR) << "HANDSHAKE_DEBUG: Input data that failed: size=" << data.size() << " hex=" << util::ToHex(data);
     return std::make_pair("", COUNTED_ERROR(Client_FinishReadHandshake));
   }
-  if (NOISE_ACTION_WRITE_MESSAGE != noise_handshakestate_get_action(hs_.get())) {
+
+  LOG(INFO) << "HANDSHAKE_DEBUG: Successfully read handshake message";
+  int next_action = noise_handshakestate_get_action(hs_.get());
+  LOG(INFO) << "HANDSHAKE_DEBUG: After read, next action=" << next_action << " (expecting NOISE_ACTION_WRITE_MESSAGE=" << NOISE_ACTION_WRITE_MESSAGE << ")";
+
+  if (NOISE_ACTION_WRITE_MESSAGE != next_action) {
+    LOG(ERROR) << "HANDSHAKE_DEBUG: Unexpected action after read: got=" << next_action << " expected=" << NOISE_ACTION_WRITE_MESSAGE;
     return std::make_pair("", COUNTED_ERROR(Client_HandshakeState));
   }
+
   buffer.resize(noise::HANDSHAKE_INIT_SIZE, '\0');
   NoiseBuffer write_buf = noise::BufferOutputFromString(&buffer);
-  if (NOISE_ERROR_NONE != noise_handshakestate_write_message(hs_.get(), &write_buf, nullptr)) {
+  LOG(INFO) << "HANDSHAKE_DEBUG: About to write handshake message";
+
+  int write_result = noise_handshakestate_write_message(hs_.get(), &write_buf, nullptr);
+  LOG(INFO) << "HANDSHAKE_DEBUG: noise_handshakestate_write_message returned=" << write_result;
+
+  if (NOISE_ERROR_NONE != write_result) {
+    LOG(ERROR) << "HANDSHAKE_DEBUG: noise_handshakestate_write_message failed with error=" << write_result;
     return std::make_pair("", COUNTED_ERROR(Client_FinishWriteHandshake));
   }
+
   buffer.resize(write_buf.size);
-  if (NOISE_ACTION_SPLIT != noise_handshakestate_get_action(hs_.get())) {
+  LOG(INFO) << "HANDSHAKE_DEBUG: Response buffer size=" << buffer.size() << " hex=" << util::ToHex(buffer);
+
+  int final_action = noise_handshakestate_get_action(hs_.get());
+  LOG(INFO) << "HANDSHAKE_DEBUG: Final action=" << final_action << " (expecting NOISE_ACTION_SPLIT=" << NOISE_ACTION_SPLIT << ")";
+
+  if (NOISE_ACTION_SPLIT != final_action) {
+    LOG(ERROR) << "HANDSHAKE_DEBUG: Expected SPLIT action but got=" << final_action;
     return std::make_pair("", COUNTED_ERROR(Client_HandshakeState));
   }
+
   NoiseCipherState* tx;
   NoiseCipherState* rx;
-  if (NOISE_ERROR_NONE != noise_handshakestate_split(hs_.get(), &tx, &rx)) {
+  int split_result = noise_handshakestate_split(hs_.get(), &tx, &rx);
+  LOG(INFO) << "HANDSHAKE_DEBUG: noise_handshakestate_split returned=" << split_result;
+
+  if (NOISE_ERROR_NONE != split_result) {
+    LOG(ERROR) << "HANDSHAKE_DEBUG: Split failed with error=" << split_result;
     return std::make_pair("", COUNTED_ERROR(Client_FinishSplit));
   }
+
   db::DB::HandshakeHash hh;
   if (NOISE_ERROR_NONE != noise_handshakestate_get_handshake_hash(hs_.get(), hh.data(), hh.size())) {
+    LOG(ERROR) << "HANDSHAKE_DEBUG: Failed to get handshake hash";
     return std::make_pair("", COUNTED_ERROR(Client_FinishHandshakeHash));
   }
   cs_->set_handshake_hash(hh);
@@ -112,6 +162,8 @@ std::pair<std::string, error::Error> Client::FinishHandshake(context::Context* c
   tx_.reset(tx);
   rx_.reset(rx);
   hs_.reset(nullptr);
+
+  LOG(INFO) << "HANDSHAKE_DEBUG: Successfully completed handshake for client=" << id_;
   return std::make_pair(buffer, error::OK);
 }
 
