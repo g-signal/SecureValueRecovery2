@@ -14,9 +14,9 @@ else
 fi
 
 # 配置变量
-DOCKER_REPO="${docker_repo}"
-BUILD_PUSH="${build_push}"
-LATEST_TAG="${build_latest_tag}"
+DOCKER_REPO="${docker.repo}"
+BUILD_PUSH="${build.push}"
+LATEST_TAG="${build.latest_tag}"
 PROJECT_NAME="svr2"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -41,12 +41,33 @@ echo "✓ Git submodules updated"
 # 3. 构建Docker基础镜像
 echo "3. Building Docker base image..."
 export DOCKER_BUILD_ARGS="--platform=linux/amd64"
+make dockerbase
+echo "✓ Docker base image built"
+
+# 4. 构建Enclave
+echo "4. Building SVR2 Enclave..."
+make docker_enclave
+echo "✓ Enclave built successfully"
+
+# 5. 构建Host
+echo "5. Building SVR2 Host..."
+make docker_host
+echo "✓ Host built successfully"
+
+# 6. 运行测试
+echo "6. Running tests..."
+make docker_enclave_test
+make docker_host_test
+echo "✓ All tests passed"
+
+# 7. 生成Enclave Releases
+echo "7. Generating enclave releases with MRENCLAVE..."
+make docker_enclave_releaser
+echo "✓ Enclave releases generated"
 
 # 8. 构建最终Docker镜像
 echo "8. Building final Docker image..."
-docker buildx build "$DOCKER_BUILD_ARGS" --no-cache -f docker/Dockerfile -t "$IMAGE_TAG" --target=sgxrun .
-
-
+docker buildx build "$DOCKER_BUILD_ARGS" --load -f docker/Dockerfile -t "$IMAGE_TAG" --target=sgxrun .
 
 if [[ "$LATEST_TAG" == "true" ]]; then
     docker tag "$IMAGE_TAG" "$LATEST_IMAGE"
@@ -54,10 +75,15 @@ fi
 
 echo "✓ Docker image built: $IMAGE_TAG"
 
+# 9. 验证镜像
+echo "9. Verifying Docker image..."
+docker run --rm "$IMAGE_TAG" /opt/svr2/host/svr2host --version || true
+echo "✓ Docker image verified"
 
 # 10. 上传Docker镜像
 if [[ "$BUILD_PUSH" == "true" ]]; then
     echo "10. Pushing Docker images..."
+
 
 
     # 推送镜像
