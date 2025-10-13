@@ -44,7 +44,8 @@ export DOCKER_BUILD_ARGS="--platform=linux/amd64"
 
 # 8. 构建最终Docker镜像
 echo "8. Building final Docker image..."
-docker buildx build "$DOCKER_BUILD_ARGS" --load -f docker/Dockerfile -t gaolixin622/svr2:61ae3eb-20251013-042823 --target=sgxrun .
+docker buildx build "$DOCKER_BUILD_ARGS" --load -f docker/Dockerfile -t "$IMAGE_TAG" --target=sgxrun .
+
 
 
 if [[ "$LATEST_TAG" == "true" ]]; then
