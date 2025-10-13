@@ -2,7 +2,6 @@
 # SVR2 Build and Docker Upload Script for Azure SGX VM
 # Based on config/build.properties and README.md
 
-set -euo pipefail
 
 # 读取配置文件
 CONFIG_FILE="config/build.properties"
