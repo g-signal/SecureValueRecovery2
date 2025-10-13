@@ -38,27 +38,6 @@ echo "2. Initializing Git submodules..."
 git submodule update --init --recursive
 echo "✓ Git submodules updated"
 
-# 3. 构建Docker基础镜像
-echo "3. Building Docker base image..."
-export DOCKER_BUILD_ARGS="--platform=linux/amd64"
-make dockerbase
-echo "✓ Docker base image built"
-
-# 4. 构建Enclave
-echo "4. Building SVR2 Enclave..."
-make docker_enclave
-echo "✓ Enclave built successfully"
-
-# 5. 构建Host
-echo "5. Building SVR2 Host..."
-make docker_host
-echo "✓ Host built successfully"
-
-
-# 7. 生成Enclave Releases
-echo "7. Generating enclave releases with MRENCLAVE..."
-make docker_enclave_releaser
-echo "✓ Enclave releases generated"
 
 # 8. 构建最终Docker镜像
 echo "8. Building final Docker image..."
