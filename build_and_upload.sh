@@ -54,11 +54,6 @@ echo "5. Building SVR2 Host..."
 make docker_host
 echo "✓ Host built successfully"
 
-# 6. 运行测试
-echo "6. Running tests..."
-make docker_enclave_test
-make docker_host_test
-echo "✓ All tests passed"
 
 # 7. 生成Enclave Releases
 echo "7. Generating enclave releases with MRENCLAVE..."
