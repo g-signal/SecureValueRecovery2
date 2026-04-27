@@ -8,6 +8,7 @@ LABEL description="linux build environment for sgx."
 COPY docker/apt.conf docker/sources.list /etc/apt/
 RUN rm -rf /etc/apt/sources.list.d/*
 COPY docker/sgx_runtime_libraries.sh /tmp/
+COPY docker/keys /tmp/keys
 RUN /tmp/sgx_runtime_libraries.sh
 
 ARG OPENENCLAVE_VERSION=0.19.13

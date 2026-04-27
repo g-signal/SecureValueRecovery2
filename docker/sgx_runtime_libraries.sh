@@ -9,11 +9,13 @@ apt-get install -y \
       software-properties-common \
       debian-archive-keyring \
 ## apt-get install
-echo "deb [arch=amd64] https://packages.microsoft.com/ubuntu/22.04/prod jammy main" | tee /etc/apt/sources.list.d/msprod.list
-echo "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu jammy main" | tee /etc/apt/sources.list.d/sgx.list
+install -d -m 0755 /etc/apt/keyrings
 
-wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add -
-wget -qO - https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+gpg --dearmor -o /etc/apt/keyrings/intel-sgx.gpg /tmp/keys/intel-sgx-deb.key
+gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg /tmp/keys/microsoft.asc
+
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/22.04/prod jammy main" | tee /etc/apt/sources.list.d/msprod.list
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/intel-sgx.gpg] https://download.01.org/intel-sgx/sgx_repo/ubuntu jammy main" | tee /etc/apt/sources.list.d/sgx.list
 
 apt-get update
 apt-get -y install \
